@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RCSS Expander</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 40px 20px; line-height: 1.5; }
+        .card { background: #fff; width: 100%; max-width: 500px; padding: 24px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        h2 { margin: 0 0 20px; font-size: 1.2rem; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+        h2::before { content: ''; width: 4px; height: 18px; background: var(--primary); border-radius: 2px; }
+        .field { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
+        input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-family: monospace; outline: none; transition: all 0.2s; }
+        input:focus { border-color: var(--primary); ring: 2px var(--primary); }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.1s; }
+        button:active { transform: scale(0.98); }
+        .res-box { margin-top: 24px; padding: 16px; background: #f1f5f9; border-radius: 8px; display: none; }
+        #resVal { 
+            font-family: 'ui-monospace', monospace; 
+            font-size: 0.95rem; 
+            color: #ef4444; 
+            word-wrap: break-word;
+            overflow-wrap: break-word; 
+            max-height: 250px;
+            overflow-y: auto; 
+            padding-right: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>RCSS 展开器</h2>
+    <div class="field">
+        <label>输入数列</label>
+        <input type="text" id="S" value="1,2,3" placeholder="例如: 1,2,3,3">
+    </div>
+    <div class="field">
+        <label>复制次数 (n)</label>
+        <input type="number" id="N" value="3" min="0">
+    </div>
+    <button onclick="run()">计算展开</button>
+
+    <div id="out" class="res-box">
+        <label>展开结果</label>
+        <div id="resVal"></div>
+    </div>
+</div>
+
+<script>
+const gP = (s, i) => { for(let j=i-1; j>=0; j--) if(s[j]<s[i]) return j; return -1; };
+const isND = (s, a, b) => { let [l, r] = a < b ? [a, b] : [b, a]; for(let k=l; k<r; k++) if(s[k]>s[k+1]) return false; return true; };
+
+function run() {
+    let s = document.getElementById('S').value.split(/[,，\s]+/).filter(x=>x).map(Number);
+    let n = parseInt(document.getElementById('N').value), lI = s.length-1;
+    if(lI < 0) return;
+
+    let P = gP(s, lI), bRI = -1;
+    if(P === -1) { s.pop(); render(s.join(',')); return; }
+
+    if(s[lI-1] >= s[lI]) {
+        for(let i=0; i<=lI; i++) {
+            if(isND(s, i, P)) {
+                bRI = i;                
+                while(bRI < lI && s[bRI+1] === s[bRI]) bRI++;
+                break;
+            }
+        }
+    } else {
+        let ch = [lI], tP = P; while(tP !== -1) { ch.unshift(tP); tP = gP(s, tP); }
+        let dfs = ch.slice(1).map((curr, i) => {
+            let p = ch[i], z = false;
+            for(let k=p+1; k<=curr; k++) if(s[k]===s[k-1]) z = true;
+            return z ? 0 : s[curr] - s[p];
+        });
+        let lD = dfs[dfs.length-1];
+        if(lD === 0) bRI = ch[ch.length-2];
+        else {
+            let f = -1; for(let j=dfs.length-2; j>=0; j--) if(dfs[j]<lD) { f=j; break; }
+            bRI = ch[f !== -1 ? f + 1 : 0];
+        }
+    }
+    
+    let bV = s[bRI], dt = s[lI]-bV-1, gPrt = s.slice(0, bRI), bPrt = s.slice(bRI, lI);
+    let res = [...gPrt, ...bPrt];
+    for(let i=1; i<=n; i++) res = res.concat(bPrt.map(v => v + dt * i));
+    render(res.join(','));
+}
+
+function render(v) {
+    document.getElementById('out').style.display = 'block';
+    document.getElementById('resVal').innerText = v;
+}
+</script>
+</body>
+</html>
